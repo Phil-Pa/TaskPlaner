@@ -8,9 +8,16 @@ data class Task(val description: String, val duration: Duration, val isParallel:
     val id: Long = ++idCounter
     val hasDependencies = dependentTasksIds != null
 
+    init {
+        taskLookup[id] = this
+    }
+
     companion object {
         fun random() = Task("", Duration.ofMillis(Random.nextLong()), Random.nextBoolean())
         private var idCounter: Long = 0
+
+        private val taskLookup = mutableMapOf<Long, Task>()
+        fun getTaskById(id: Long) = taskLookup[id]!!
     }
 
     override fun equals(other: Any?): Boolean {

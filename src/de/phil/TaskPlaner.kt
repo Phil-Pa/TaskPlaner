@@ -2,20 +2,6 @@ package de.phil
 
 class TaskPlaner {
 
-    private fun getNumOfParallelTasks(tasks: List<Task>) = tasks.filter { it.isParallel }.size
-    private fun sortByDurationAndPutTaskToListPosition(tasks: List<Task>, taskToMove: Task, position: ListPosition): List<Task> {
-        val result = tasks.toMutableList()
-        result.remove(taskToMove)
-        result.sortBy { it.duration }
-
-        when (position) {
-            ListPosition.Start -> result.add(0, taskToMove)
-            ListPosition.End -> result.add(taskToMove)
-        }
-
-        return result
-    }
-
     fun plan(tasks: List<Task>): List<Task> {
 
         if (tasks.isEmpty())
@@ -29,31 +15,18 @@ class TaskPlaner {
         if (tasksAreDependent(tasks))
             return planDependentTasks(tasks)
 
-        when (tasks.size) {
-            2 -> return planTwoTasks(tasks)
-            3 -> return planThreeTasks(tasks)
-        }
-
-        return listOf()
+        return planNotDependentTasks(tasks)
     }
 
-    private fun planThreeTasks(tasks: List<Task>): List<Task> {
-        val allTasksAreNotParallel = tasks.all { !it.isParallel }
-        if (allTasksAreNotParallel)
-            return tasks
+    private fun planNotDependentTasks(tasks: List<Task>): MutableList<Task> {
+        val parallelTasks = tasks.filter { it.isParallel }.sortedBy { it.duration }
+        val nonParallelTasks = tasks.filter { !it.isParallel }.sortedBy { it.duration }
 
-        val numTasksParallel = getNumOfParallelTasks(tasks)
+        val result = mutableListOf<Task>()
+        result.addAll(parallelTasks)
+        result.addAll(nonParallelTasks)
 
-        if (numTasksParallel == 1) {
-            val parallelTask = tasks.first { it.isParallel }
-            return sortByDurationAndPutTaskToListPosition(tasks, taskToMove = parallelTask, position = ListPosition.Start)
-        } else if (numTasksParallel == 2) {
-            val nonParallelTask = tasks.first { !it.isParallel }
-            return sortByDurationAndPutTaskToListPosition(tasks, taskToMove = nonParallelTask, position = ListPosition.End)
-
-        }
-
-        return tasks
+        return result
     }
 
     private fun planDependentTasks(tasks: List<Task>): List<Task> {
@@ -71,13 +44,6 @@ class TaskPlaner {
     private fun checkCircularTaskDependencies(tasks: List<Task>) {
         if (tasks.all { it.hasDependencies })
             throw CircularTaskReferenceException()
-    }
-
-    private fun planTwoTasks(tasks: List<Task>): List<Task> {
-        return if (tasks.first().isParallel || tasks.all { !it.isParallel })
-            tasks
-        else
-            tasks.reversed()
     }
 
 }

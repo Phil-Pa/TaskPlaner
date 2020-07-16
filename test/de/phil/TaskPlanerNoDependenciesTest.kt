@@ -43,7 +43,7 @@ class TaskPlanerNoDependenciesTest {
         val nonParallelTask2 = Task("", Duration.ofMinutes(20), false)
 
         assertEquals(listOf(nonParallelTask1, nonParallelTask2), planer.plan(listOf(nonParallelTask1, nonParallelTask2)))
-        assertEquals(listOf(nonParallelTask2, nonParallelTask1), planer.plan(listOf(nonParallelTask2, nonParallelTask1)))
+        assertEquals(listOf(nonParallelTask1, nonParallelTask2), planer.plan(listOf(nonParallelTask2, nonParallelTask1)))
     }
 
     @Test
@@ -52,7 +52,7 @@ class TaskPlanerNoDependenciesTest {
         val parallelTask2 = Task("", Duration.ofMinutes(20), true)
 
         assertEquals(listOf(parallelTask1, parallelTask2), planer.plan(listOf(parallelTask1, parallelTask2)))
-        assertEquals(listOf(parallelTask2, parallelTask1), planer.plan(listOf(parallelTask2, parallelTask1)))
+        assertEquals(listOf(parallelTask1, parallelTask2), planer.plan(listOf(parallelTask2, parallelTask1)))
     }
 
     @Test
