@@ -170,8 +170,8 @@ class TaskPlanerGetPathDurationTest {
 
             val list1 = mutableListOf<Task>()
             val list2 = mutableListOf<Task>()
+            val list3 = mutableListOf<Task>()
 
-            // TODO
             var task1 = Task("2", Duration.ofMinutes(20), true)
             var task2 = Task("3", Duration.ofMinutes(5), true)
             var task3 = Task("1", Duration.ofMinutes(10), true)
@@ -202,9 +202,38 @@ class TaskPlanerGetPathDurationTest {
             list2.add(task6)
             list2.add(task7)
 
+            task1 = Task("1", Duration.ofMinutes(10), true)
+            task2 = Task("2", Duration.ofMinutes(5), false)
+            task3 = Task("3", Duration.ofMinutes(20), true)
+            task4 = Task("4", Duration.ofMinutes(20), true, arrayOf(task1.id))
+            task5 = Task("5", Duration.ofMinutes(10), false, arrayOf(task2.id, task3.id))
+            task6 = Task("6", Duration.ofMinutes(30), false, arrayOf(task3.id))
+            task7 = Task("7", Duration.ofMinutes(40), false)
+            val task8 = Task("8", Duration.ofMinutes(10), false, arrayOf(task4.id))
+            val task9 = Task("9", Duration.ofMinutes(30), false, arrayOf(task4.id, task5.id))
+            val task10 = Task("10", Duration.ofMinutes(20), false, arrayOf(task6.id))
+            val task11 = Task("11", Duration.ofMinutes(50), true, arrayOf(task6.id, task7.id))
+            val task12 = Task("12", Duration.ofMinutes(15), true, arrayOf(task8.id))
+            val task13 = Task("13", Duration.ofMinutes(40), false, arrayOf(task9.id, task10.id, task11.id, task12.id))
+
+            list3.add(task1)
+            list3.add(task2)
+            list3.add(task3)
+            list3.add(task4)
+            list3.add(task5)
+            list3.add(task6)
+            list3.add(task7)
+            list3.add(task8)
+            list3.add(task9)
+            list3.add(task10)
+            list3.add(task11)
+            list3.add(task12)
+            list3.add(task13)
+
             return Stream.of(
                     Arguments.of(list1, 65),
-                    Arguments.of(list2, 70)
+                    Arguments.of(list2, 70),
+                    Arguments.of(list3, 200)
             )
         }
     }
