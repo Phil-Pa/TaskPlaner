@@ -3,10 +3,11 @@ package de.phil
 import java.time.Duration
 import kotlin.random.Random
 
-class Task(val description: String, val duration: Duration, val isParallel: Boolean, val dependentTasksIds: Array<Long>? = null) {
+class Task(private val description: String, val duration: Duration, val isParallel: Boolean, val dependentTasksIds: Array<Long>? = null) {
 
     val id: Long = ++idCounter
     val hasDependencies = dependentTasksIds != null
+    val isStarterTask = !hasDependencies
 
     init {
         taskLookup[id] = this
@@ -17,7 +18,12 @@ class Task(val description: String, val duration: Duration, val isParallel: Bool
         private var idCounter: Long = 0
 
         private val taskLookup = mutableMapOf<Long, Task>()
-        fun getTaskById(id: Long) = taskLookup[id]!!
+        private fun getTaskById(id: Long) = taskLookup[id]!!
+        fun getDependenciesByIds(ids: Array<Long>): List<Task> {
+            val tasks = mutableListOf<Task>()
+            ids.forEach { tasks.add(getTaskById(it)) }
+            return tasks
+        }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -38,21 +44,6 @@ class Task(val description: String, val duration: Duration, val isParallel: Bool
         result = 31 * result + duration.hashCode()
         result = 31 * result + isParallel.hashCode()
         result = 31 * result + id.hashCode()
-        return result
-    }
-
-    fun getTasks(): List<Task> {
-
-        if (!hasDependencies)
-            return listOf()
-
-        val result = mutableListOf<Task>()
-        for ((id, task) in taskLookup) {
-            if (dependentTasksIds!!.contains(id)) {
-                result.add(task)
-            }
-        }
-
         return result
     }
 

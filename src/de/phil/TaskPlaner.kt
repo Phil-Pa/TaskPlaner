@@ -1,7 +1,6 @@
 package de.phil
 
 import java.time.Duration
-import kotlin.math.max
 
 class TaskPlaner {
 
@@ -40,17 +39,6 @@ class TaskPlaner {
             return listOf(second, first)
 
         return tasks
-
-//        val paths = buildAllPaths(tasks)
-//
-//        val pathDurationMap = mutableMapOf<List<Task>, Duration>()
-//
-//        for (path in paths) {
-//            pathDurationMap[path] = getPathDuration(path)
-//        }
-//
-//        val minDuration = pathDurationMap.minBy { it.value }!!.value
-//        return pathDurationMap.filter { it.value == minDuration }.map { it.key }.first()
     }
 
     private fun isChain(path: List<Task>): Boolean {
@@ -68,23 +56,10 @@ class TaskPlaner {
 
     fun getPathDuration(path: List<Task>): Duration {
 
-        if (path.isEmpty())
-            return Duration.ZERO
-
-        if (path.size == 1)
-            return path.first().duration
-
-        if (path.size == 2) {
-            if (path.all { !it.isParallel })
-                return sumTaskDuration(path)
-            return path.maxBy { it.duration }!!.duration
-        }
-
-        if (path.size == 3) {
-            if (path.last().hasDependencies && path.last().dependentTasksIds!!.size == 2) {
-                val firstDuration = getPathDuration(path - path.last())
-                return firstDuration + path.last().duration
-            }
+        if (isSmallPath(path)) {
+            val smallDuration = getSmallPathDuration(path)
+            if (smallDuration != null)
+                return smallDuration
         }
 
         if (isChain(path))
@@ -120,34 +95,57 @@ class TaskPlaner {
                 list.removeAt(list.size - 1)
 
             if (current.hasDependencies) {
-                val dependencies = current.dependentTasksIds!!.map { Task.getTaskById(it) }
-                if (dependencies.all { it.isParallel && !it.hasDependencies }) {
-                    val others = starters - dependencies
-                    val othersDuration = getPathDuration(others)
-                    val thisDuration = getPathDuration(dependencies + current)
+                val dependencies = Task.getDependenciesByIds(current.dependentTasksIds!!)
+                if (dependencies.all { it.isParallel && it.isStarterTask }) {
+                    val othersStarterTasks = starters - dependencies
+                    val othersDuration = getPathDuration(othersStarterTasks)
+                    val smallPathTree = dependencies + current
+                    val thisDuration = getPathDuration(smallPathTree)
                     val maxDuration = if (othersDuration > thisDuration) othersDuration else thisDuration
+
                     duration += maxDuration
                     list.remove(current)
-                    list.removeAll(others)
+                    list.removeAll(othersStarterTasks)
                     list.removeAll(dependencies)
                     continue
                 }
             }
 
-            if ((list - current).all { previousTaskCanBeOmitted(it, current) })
-                break
-
-            if (areStarters(current, previous)
+            duration += if (areStarters(current, previous)
                     && areParallelAndSequentialTasks(current, previous)
                     && previous !in tasksDone) {
-                duration += previous.duration
+                previous.duration
             } else {
-                duration += current.duration
+                current.duration
             }
-
         }
 
         return duration
+    }
+
+    private fun isSmallPath(path: List<Task>) = path.size <= 3
+
+    private fun getSmallPathDuration(path: List<Task>): Duration? {
+        if (path.isEmpty())
+            return Duration.ZERO
+
+        if (path.size == 1)
+            return path.first().duration
+
+        if (path.size == 2) {
+            if (path.all { !it.isParallel })
+                return sumTaskDuration(path)
+            return path.maxBy { it.duration }!!.duration
+        }
+
+        if (path.size == 3) {
+            if (path.last().hasDependencies && path.last().dependentTasksIds!!.size == 2) {
+                val firstDuration = getPathDuration(path - path.last())
+                return firstDuration + path.last().duration
+            }
+        }
+
+        return null
     }
 
     private fun hasParallelPeek(starters: List<Task>): Boolean {
@@ -191,10 +189,6 @@ class TaskPlaner {
         for (task in path)
             sum += task.duration
         return sum
-    }
-
-    private fun buildAllPaths(tasks: List<Task>): List<List<Task>> {
-        return listOf()
     }
 
     private fun tasksAreDependent(tasks: List<Task>) = tasks.any { it.hasDependencies }
