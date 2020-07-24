@@ -3,7 +3,7 @@ package de.phil
 import java.time.Duration
 import kotlin.random.Random
 
-class Task(private val description: String, val duration: Duration, val isParallel: Boolean, val dependentTasksIds: Array<Long>? = null) {
+class Task(private val description: String, var duration: Duration, val isParallel: Boolean, val dependentTasksIds: Array<Long>? = null) {
 
     val id: Long = ++idCounter
     val hasDependencies = dependentTasksIds != null
