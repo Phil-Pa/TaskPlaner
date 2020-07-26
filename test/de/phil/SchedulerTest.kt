@@ -25,6 +25,8 @@ class SchedulerTest {
         duration = scheduler.schedule(list1.toMutableList())
         assertEquals(Duration.ofMinutes(20), duration)
 
+//        return
+
         val task4 = Task("4", Duration.ofMinutes(15), false)
         list1.add(task4)
         duration = scheduler.schedule(list1.toMutableList())

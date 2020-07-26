@@ -50,27 +50,16 @@ class Scheduler {
     private fun advanceTime(duration: Duration, advanceParallel: Boolean): Duration {
         var temp = duration
 
-        if (lastAdvanceWasParallel || savedSequentialTimeDuringParallelTasks != Duration.ZERO) {
-            if (advanceParallel) {
-                throw Exception()
-            } else {
-                val sequentialTaskDuration = sequentialWorker.currentTask.duration
-                sequentialWorker.removeCurrentTask()
-                if (lastAdvanceWasParallel) {
-                    val diff = lastAdvanceTime.difference(sequentialTaskDuration)
-                    if (diff > lastAdvanceTime)
-                        temp += diff
-                    else if (diff + savedSequentialTimeDuringParallelTasks > lastAdvanceTime)
-                        temp += lastAdvanceTime.difference(diff + savedSequentialTimeDuringParallelTasks)
-                    else
-                        savedSequentialTimeDuringParallelTasks += diff
-                } else {
-                    if (lastAdvanceTime > sequentialTaskDuration + savedSequentialTimeDuringParallelTasks)
-                        temp += lastAdvanceTime.difference(sequentialTaskDuration + savedSequentialTimeDuringParallelTasks)
-                    else
-                        throw Exception()
-                }
-            }
+        if (lastAdvanceWasParallel && !advanceParallel) {
+            val sequentialTaskDuration = sequentialWorker.currentTask.duration
+            sequentialWorker.removeCurrentTask()
+            val diff = lastAdvanceTime.difference(sequentialTaskDuration)
+            if (diff > lastAdvanceTime)
+                temp += diff
+            else if (diff + savedSequentialTimeDuringParallelTasks > lastAdvanceTime)
+                temp += lastAdvanceTime.difference(diff + savedSequentialTimeDuringParallelTasks)
+            else
+                savedSequentialTimeDuringParallelTasks += diff
         } else {
 
             temp += getAdvanceTime()
