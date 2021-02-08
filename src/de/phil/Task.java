@@ -1,0 +1,41 @@
+package de.phil;
+
+import java.time.Duration;
+import java.util.List;
+
+public class Task {
+
+    private final int id;
+    private final String description;
+    private final Duration duration;
+    private final boolean isParallel;
+    private final List<Integer> dependentTaskIds;
+
+    public Task(int id, String description, Duration duration, boolean isParallel, List<Integer> dependentTaskIds) {
+        this.id = id;
+        this.description = description;
+        this.duration = duration;
+        this.isParallel = isParallel;
+        this.dependentTaskIds = dependentTaskIds;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public Duration getDuration() {
+        return duration;
+    }
+
+    public boolean isParallel() {
+        return isParallel;
+    }
+
+    public List<Integer> getDependentTaskIds() {
+        return dependentTaskIds;
+    }
+}
