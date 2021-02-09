@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 public class TaskRunSimulator {
     private final List<Task> tasks;
+    private final List<Task> cacheCleanList = new ArrayList<>();
 
     public TaskRunSimulator(List<Task> tasks) {
         this.tasks = tasks;
@@ -36,7 +37,7 @@ public class TaskRunSimulator {
             } else if (!task.isParallel() && !dependenciesInParallelTasks(task, parallelTasks)) {
                 // clear parallel task cache
 
-                decreaseParallelTasksDuration(tasksDoneIds, parallelTasks, task.getDuration());
+                decreaseParallelTasksDuration(tasksDoneIds, parallelTasks, task.getDuration(), parallelTaskCache);
             }
 
             while (dependenciesSatisfied(task, tasksDoneIds)) {
@@ -44,21 +45,33 @@ public class TaskRunSimulator {
                 if (waitDuration == null)
                     break;
 
+                totalDuration = totalDuration.plus(waitDuration);
+
                 if (waitIntervals.containsKey(waitDuration)) {
-                    totalDuration = totalDuration.plus(waitDuration);
                     waitIntervals.put(waitDuration, waitIntervals.get(waitDuration) + 1);
                 } else {
-                    totalDuration = totalDuration.plus(waitDuration);
                     waitIntervals.put(waitDuration, 1);
                 }
 
-                decreaseParallelTasksDuration(tasksDoneIds, parallelTasks, waitDuration);
+                decreaseParallelTasksDuration(tasksDoneIds, parallelTasks, waitDuration, parallelTaskCache);
             }
 
-            decreaseParallelTasksDuration(tasksDoneIds, parallelTasks, task.getDuration());
+            decreaseParallelTasksDuration(tasksDoneIds, parallelTasks, task.getDuration(), parallelTaskCache);
 
             tasksDoneIds.add(task.getId());
             totalDuration = totalDuration.plus(task.getDuration());
+
+            for (int i = 0; i < cacheCleanList.size(); i++) {
+                Task cacheTask = cacheCleanList.get(i);
+                if (dependenciesSatisfied(cacheTask, tasksDoneIds)) {
+                    cacheTask.decreaseDuration(task.getDuration());
+                    if (cacheTask.getDuration().isZero()) {
+                        cacheCleanList.remove(cacheTask);
+                        i--;
+                        tasksDoneIds.add(cacheTask.getId());
+                    }
+                }
+            }
         }
 
         Duration maxDuration = Duration.ZERO;
@@ -97,7 +110,7 @@ public class TaskRunSimulator {
         return true;
     }
 
-    private void decreaseParallelTasksDuration(List<Integer> tasksDoneIds, List<Task> parallelTasks, Duration duration) {
+    private void decreaseParallelTasksDuration(List<Integer> tasksDoneIds, List<Task> parallelTasks, Duration duration, List<Task> parallelTaskCache) {
 
         for (int i = 0; i < parallelTasks.size(); i++) {
             Task parallelTask = parallelTasks.get(i);
@@ -109,6 +122,16 @@ public class TaskRunSimulator {
                 tasksDoneIds.add(parallelTask.getId());
             }
 
+        }
+
+        tryCleanParallelTaskCache(tasksDoneIds, parallelTasks, parallelTaskCache);
+    }
+
+    private void tryCleanParallelTaskCache(List<Integer> tasksDoneIds, List<Task> parallelTasks, List<Task> parallelTaskCache) {
+        for (Task cacheTask : parallelTaskCache) {
+            if (dependenciesSatisfied(cacheTask, tasksDoneIds)) {
+                cacheCleanList.add(cacheTask);
+            }
         }
     }
 
