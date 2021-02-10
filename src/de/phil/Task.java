@@ -19,6 +19,10 @@ public class Task {
         this.dependentTaskIds = dependentTaskIds;
     }
 
+    public static Task deepCopy(Task task) {
+        return new Task(task.id, task.description, Duration.ofSeconds(task.getDuration().getSeconds(), task.getDuration().getNano()), task.isParallel, task.dependentTaskIds);
+    }
+
     public int getId() {
         return id;
     }
@@ -47,5 +51,14 @@ public class Task {
         this.duration = this.duration.minus(duration);
         if (this.duration.isNegative())
             this.duration = Duration.ZERO;
+    }
+
+    @Override
+    public String toString() {
+        return "Task{" +
+                "id=" + id +
+                ", duration=" + duration +
+                ", isParallel=" + isParallel +
+                '}';
     }
 }

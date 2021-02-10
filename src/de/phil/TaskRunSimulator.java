@@ -1,153 +1,146 @@
 package de.phil;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class TaskRunSimulator {
     private final List<Task> tasks;
-    private final List<Task> cacheCleanList = new ArrayList<>();
+    private final List<Task> parallelTaskList = new ArrayList<>();
+    private final Set<Integer> tasksDoneIds = new NotOrderedSet<>();
+    private final Map<Duration, Integer> waitIntervals = new HashMap<>();
+    private Duration totalDuration = Duration.ZERO;
 
     public TaskRunSimulator(List<Task> tasks) {
         this.tasks = tasks;
     }
 
-    public ScheduleResult run() {
+    public ScheduleResult run() throws Exception {
+        if (tasks.size() == 1) {
+            totalDuration = tasks.get(0).getDuration();
+        } else {
+            for (Task task : tasks) {
 
-        List<Integer> tasksDoneIds = new ArrayList<>();
-        List<Task> parallelTasks = new ArrayList<>();
-
-        List<Task> parallelTaskCache = new ArrayList<>();
-
-        Duration totalDuration = Duration.ZERO;
-        Map<Duration, Integer> waitIntervals = new HashMap<>();
-
-        for (Task task : tasks) {
-            if (task.isParallel() && dependenciesSatisfied(task, tasksDoneIds)) {
-                parallelTasks.add(task);
-                continue;
-            } else if (task.isParallel() && !dependenciesSatisfied(task, tasksDoneIds)) {
-                if (dependenciesInParallelTasks(task, parallelTasks)) {
-                    parallelTaskCache.add(task);
+                if (task.isParallel() && taskDependenciesSatisfied(task) && !parallelTaskList.contains(task)) {
+                    parallelTaskList.add(task);
                     continue;
                 }
-            } else if (!task.isParallel() && !dependenciesInParallelTasks(task, parallelTasks)) {
-                // clear parallel task cache
 
-                decreaseParallelTasksDuration(tasksDoneIds, parallelTasks, task.getDuration(), parallelTaskCache);
-            }
+                if (!taskDependenciesSatisfied(task)) {
+                    List<Task> taskDependencies = fetchParallelTaskDependencies(task);
+                    Duration waitTime = calculateWaitTime(taskDependencies);
 
-            while (dependenciesSatisfied(task, tasksDoneIds)) {
-                Duration waitDuration = getMinWaitDuration(parallelTasks);
-                if (waitDuration == null)
-                    break;
+                    trackNewWaitInterval(waitTime);
 
-                totalDuration = totalDuration.plus(waitDuration);
+                    // add wait time to total duration
+                    totalDuration = totalDuration.plus(waitTime);
+                    meanwhileDoParallelTasks(waitTime);
 
-                if (waitIntervals.containsKey(waitDuration)) {
-                    waitIntervals.put(waitDuration, waitIntervals.get(waitDuration) + 1);
-                } else {
-                    waitIntervals.put(waitDuration, 1);
+                    setTasksDone(taskDependencies);
+
+                    // task dependencies are already removed in meanwhileDoParallelTasks
+                    // start new available parallel tasks
+
+                    List<Task> newAvailableParallelTasks = fetchAvailableParallelTasks();
+
+                    // start new available tasks
+                    parallelTaskList.addAll(newAvailableParallelTasks);
+
+                    if (task.isParallel())
+                        continue;
                 }
 
-                decreaseParallelTasksDuration(tasksDoneIds, parallelTasks, waitDuration, parallelTaskCache);
+                if (!task.isParallel()) {
+                    doSequentialTask(task);
+                    meanwhileDoParallelTasks(task.getDuration());
+                    setTaskDone(task);
+
+                    // task dependencies are already removed in meanwhileDoParallelTasks
+                    // start new available parallel tasks
+
+                    List<Task> newAvailableParallelTasks = fetchAvailableParallelTasks();
+
+                    // start new available tasks
+                    parallelTaskList.addAll(newAvailableParallelTasks);
+                }
             }
+        }
 
-            decreaseParallelTasksDuration(tasksDoneIds, parallelTasks, task.getDuration(), parallelTaskCache);
+        return new ScheduleResult(totalDuration, new ArrayList<>(tasksDoneIds), false, waitIntervals);
+    }
 
+    private List<Task> fetchAvailableParallelTasks() {
+        List<Task> newAvailableTasks = new ArrayList<>();
+        for (Task task : tasks) {
+            // if task is parallel and not done, and dependencies have to be done
+            // it also must not be in parallel tasks and being started already
+            if (task.isParallel() && !tasksDoneIds.contains(task.getId()) && taskDependenciesSatisfied(task) && !parallelTaskList.contains(task)) {
+                newAvailableTasks.add(task);
+            }
+        }
+        return newAvailableTasks;
+    }
+
+    private void trackNewWaitInterval(Duration waitTime) {
+        waitIntervals.put(waitTime, waitIntervals.getOrDefault(waitTime, 0) + 1);
+    }
+
+    private void setTaskDone(Task task) {
+        tasksDoneIds.add(task.getId());
+    }
+
+    private void setTasksDone(List<Task> tasks) {
+        for (Task task : tasks) {
             tasksDoneIds.add(task.getId());
-            totalDuration = totalDuration.plus(task.getDuration());
-
-            for (int i = 0; i < cacheCleanList.size(); i++) {
-                Task cacheTask = cacheCleanList.get(i);
-                if (dependenciesSatisfied(cacheTask, tasksDoneIds)) {
-                    cacheTask.decreaseDuration(task.getDuration());
-                    if (cacheTask.getDuration().isZero()) {
-                        cacheCleanList.remove(cacheTask);
-                        i--;
-                        tasksDoneIds.add(cacheTask.getId());
-                    }
-                }
-            }
         }
-
-        Duration maxDuration = Duration.ZERO;
-        for (Duration duration : parallelTasks.stream().map(Task::getDuration).collect(Collectors.toList())) {
-            if (duration.compareTo(maxDuration) > 0) {
-                maxDuration = duration;
-            }
-        }
-
-        if (!maxDuration.isZero())
-            totalDuration = totalDuration.plus(maxDuration);
-
-        return new ScheduleResult(totalDuration, tasks.stream().map(Task::getId).collect(Collectors.toList()), false, waitIntervals);
     }
 
-    private boolean dependenciesInParallelTasks(Task task, List<Task> parallelTasks) {
+    private Duration calculateWaitTime(List<Task> taskDependencies) {
+        Duration time = Duration.ZERO;
+        for (Task task : taskDependencies) {
+            // if task duration > time
+            if (task.getDuration().compareTo(time) > 0) {
+                time = task.getDuration();
+            }
+        }
+        return time;
+    }
 
+    private List<Task> fetchParallelTaskDependencies(Task task) throws Exception {
         if (!task.hasDependentTasks())
-            return false;
+            throw new Exception("can only fetch dependencies if task has dependencies");
 
-        for (int id : task.getDependentTaskIds()) {
-
-            boolean idCovered = false;
-
-            for (Task parallelTask : parallelTasks) {
-                if (parallelTask.getId() == id) {
-                    idCovered = true;
-                    break;
-                }
+        List<Task> parallelDependencies = new ArrayList<>();
+        for (Task t : tasks) {
+            if (t.isParallel() && task.getDependentTaskIds().contains(t.getId())) {
+                parallelDependencies.add(t);
             }
-
-            if (!idCovered)
-                return false;
         }
-
-        return true;
+        return parallelDependencies;
     }
 
-    private void decreaseParallelTasksDuration(List<Integer> tasksDoneIds, List<Task> parallelTasks, Duration duration, List<Task> parallelTaskCache) {
-
-        for (int i = 0; i < parallelTasks.size(); i++) {
-            Task parallelTask = parallelTasks.get(i);
-
-            // if dependencies are met we can decrease the duration
-            parallelTask.decreaseDuration(duration);
-            if (parallelTask.getDuration().isZero()) {
-                parallelTasks.remove(parallelTask);
-                tasksDoneIds.add(parallelTask.getId());
-            }
-
-        }
-
-        tryCleanParallelTaskCache(tasksDoneIds, parallelTasks, parallelTaskCache);
-    }
-
-    private void tryCleanParallelTaskCache(List<Integer> tasksDoneIds, List<Task> parallelTasks, List<Task> parallelTaskCache) {
-        for (Task cacheTask : parallelTaskCache) {
-            if (dependenciesSatisfied(cacheTask, tasksDoneIds)) {
-                cacheCleanList.add(cacheTask);
+    private void meanwhileDoParallelTasks(Duration duration) {
+        for (int i = 0; i < parallelTaskList.size(); i++) {
+            Task task = parallelTaskList.get(i);
+            task.decreaseDuration(duration);
+            if (task.getDuration().isZero()) {
+                parallelTaskList.remove(task);
+                tasksDoneIds.add(task.getId());
+                i--;
             }
         }
     }
 
-    private Duration getMinWaitDuration(List<Task> parallelTasks) {
-        return parallelTasks.stream().map(Task::getDuration).sorted().findFirst().orElse(null);
+    private void doSequentialTask(Task task) {
+        totalDuration = task.getDuration().plus(totalDuration);
     }
 
-    private boolean dependenciesSatisfied(Task task, List<Integer> tasksDoneIds) {
-
+    private boolean taskDependenciesSatisfied(Task task) {
         if (!task.hasDependentTasks())
             return true;
-
-        for (int dependencyId : task.getDependentTaskIds()) {
-            if (!tasksDoneIds.contains(dependencyId))
+        for (int dep : task.getDependentTaskIds())
+            if (!tasksDoneIds.contains(dep))
                 return false;
-        }
         return true;
     }
 }

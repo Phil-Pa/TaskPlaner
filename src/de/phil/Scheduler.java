@@ -91,7 +91,14 @@ public class Scheduler {
         List<List<Task>> permutations = buildTaskPermutations(tasks);
         for (List<Task> list : permutations) {
             TaskRunSimulator simulator = new TaskRunSimulator(list);
-            ScheduleResult result = simulator.run();
+            ScheduleResult result = null;
+            try {
+                result = simulator.run();
+            } catch (Exception e) {
+                System.out.println("Error in task simulation");
+                e.printStackTrace();
+                continue;
+            }
             if (result != null)
                 results.add(result);
         }
@@ -133,7 +140,10 @@ public class Scheduler {
 
             if (isDoable(perm, tasksDoneIds)) {
 //                System.out.println("added at " + count);
-                lists.add(new ArrayList<>(perm));
+                List<Task> deepCopy = new ArrayList<>(perm.size());
+                for (int i = 0; i < perm.size(); i++)
+                    deepCopy.add(Task.deepCopy(perm.get(i)));
+                lists.add(new ArrayList<>(deepCopy));
             }
 
             count++;
