@@ -6,7 +6,12 @@ import java.util.stream.Collectors;
 
 public class Scheduler {
 
+    private final List<List<Task>> combinations = new ArrayList<>();
+    private List<Task> tasks;
+
     public ScheduleResult scheduleTasks(List<Task> tasks) {
+        // TODO: refactor to pass this to constructor
+        this.tasks = tasks;
 
         if (tasks.stream().noneMatch(Task::hasDependentTasks)) {
             return handleNoDependentTasks(tasks);
@@ -14,7 +19,7 @@ public class Scheduler {
 
         List<ScheduleResult> results = new ArrayList<>();
 
-        List<List<Task>> permutations = foo(tasks); //buildTaskPermutations(tasks);
+        List<List<Task>> permutations = __bar__(tasks); //buildTaskPermutations(tasks);
 
         for (List<Task> list : permutations) {
             TaskRunSimulator simulator = new TaskRunSimulator(list);
@@ -81,11 +86,12 @@ public class Scheduler {
             Duration parallelDuration = scheduleParallelTasks(parallelTasks).getTotalDuration();
             Duration sequentialDuration = scheduleSequentialTasks(sequentialTasks).getTotalDuration();
 
-            Duration totalDuration = switch (parallelDuration.compareTo(sequentialDuration)) {
-                case 1 -> parallelDuration;
-                case -1 -> sequentialDuration;
-                default -> sequentialDuration;
-            };
+            Duration totalDuration;
+            if (parallelDuration.compareTo(sequentialDuration) > 0) {
+                totalDuration = parallelDuration;
+            } else {
+                totalDuration = sequentialDuration;
+            }
 
             List<Integer> orderIds = new ArrayList<>();
             orderIds.addAll(parallelTasks.stream().map(Task::getId).collect(Collectors.toList()));
@@ -255,7 +261,69 @@ public class Scheduler {
         return level;
     }
 
-    private static List<List<Task>> __bar__(List<Task> tasks) {
+    private List<List<Task>> __bar__(List<Task> tasks) {
+
+        Task leaf = findLeaf(tasks);
+
+        List<Task> permutation = new ArrayList<>();
+        rec(leaf, permutation);
+
+        return combinations;
+    }
+
+    private void rec(Task leaf, List<Task> permutation) {
+        List<Task> dependencies = tasks.stream().filter(it -> {
+            if (it.hasDependentTasks()) {
+                return leaf.getDependentTaskIds().contains(it.getId());
+            } else {
+                return false;
+            }
+        }).collect(Collectors.toList());
+
+        if (!permutation.contains(leaf))
+            permutation.add(leaf);
+
+        for (Task dependency : dependencies) {
+            //permutation.add(dependency);
+            permutation.addAll(dependencies);
+            rec(dependency, permutation);
+        }
+
+        if (combinations.contains(permutation))
+            return;
+
+        List<Task> deepCopy = new ArrayList<>();
+        for (Task task : permutation)
+            deepCopy.add(Task.deepCopy(task));
+
+        Collections.reverse(deepCopy);
+
+        combinations.add(deepCopy);
+        permutation.clear();
+    }
+
+    private static Task findLeaf(List<Task> tasks) {
+        // first, pick a random root, we choose the first in the list.
+        // the first one should always have no dependencies, so it is
+        // a safe choice
+
+        // check if some tasks has the root as dependency
+        Task taskWithRootAsDependency = tasks.get(0);
+        Task lastNode = null;
+        while (taskWithRootAsDependency != null) {
+            taskWithRootAsDependency = getTaskWithDependency(taskWithRootAsDependency, tasks);
+            if (taskWithRootAsDependency != null)
+                lastNode = taskWithRootAsDependency;
+        }
+        return lastNode;
+    }
+
+    private static Task getTaskWithDependency(Task task, List<Task> tasks) {
+        for (Task t : tasks) {
+            if (t.hasDependentTasks() && t.getDependentTaskIds().contains(task.getId())) {
+                return t;
+            }
+        }
         return null;
     }
 
