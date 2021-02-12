@@ -15,16 +15,22 @@ public class TaskRunSimulator {
     }
 
     public ScheduleResult run() throws Exception {
+        // handle single task
         if (tasks.size() == 1) {
             totalDuration = tasks.get(0).getDuration();
-        } else {
+        }
+        // handle multiple tasks
+        else {
             for (Task task : tasks) {
 
+                // keep adding as many parallel tasks as possible
                 if (task.isParallel() && taskDependenciesSatisfied(task) && !parallelTaskList.contains(task)) {
                     parallelTaskList.add(task);
                     continue;
                 }
 
+                // check if our current task can be done.
+                // if not, fulfill it's dependencies first
                 if (!taskDependenciesSatisfied(task)) {
                     List<Task> taskDependencies = fetchParallelTaskDependencies(task);
                     Duration waitTime = calculateWaitTime(taskDependencies);
@@ -49,23 +55,28 @@ public class TaskRunSimulator {
                         continue;
                 }
 
-                if (!task.isParallel()) {
-                    doSequentialTask(task);
-                    meanwhileDoParallelTasks(task.getDuration());
-                    setTaskDone(task);
-
-                    // task dependencies are already removed in meanwhileDoParallelTasks
-                    // start new available parallel tasks
-
-                    List<Task> newAvailableParallelTasks = fetchAvailableParallelTasks();
-
-                    // start new available tasks
-                    parallelTaskList.addAll(newAvailableParallelTasks);
-                }
+                doSequentialWork(task);
             }
         }
 
         return new ScheduleResult(totalDuration, new ArrayList<>(tasksDoneIds), false, waitIntervals);
+    }
+
+    private void doSequentialWork(Task task) {
+        // this method is only meant for sequential tasks
+        if (!task.isParallel()) {
+            doSequentialTask(task);
+            meanwhileDoParallelTasks(task.getDuration());
+            setTaskDone(task);
+
+            // task dependencies are already removed in meanwhileDoParallelTasks
+            // start new available parallel tasks
+
+            List<Task> newAvailableParallelTasks = fetchAvailableParallelTasks();
+
+            // start new available tasks
+            parallelTaskList.addAll(newAvailableParallelTasks);
+        }
     }
 
     private List<Task> fetchAvailableParallelTasks() {
@@ -107,7 +118,7 @@ public class TaskRunSimulator {
 
     private List<Task> fetchParallelTaskDependencies(Task task) throws Exception {
         if (!task.hasDependentTasks())
-            throw new Exception("can only fetch dependencies if task has dependencies");
+            throw new IllegalStateException("can only fetch dependencies if task has dependencies");
 
         List<Task> parallelDependencies = new ArrayList<>();
         for (Task t : tasks) {
