@@ -11,11 +11,9 @@ import static org.junit.Assert.*;
 public class SchedulerTest {
 
     private void testOneTaskImpl(Task task) {
-        List<Task> taskList = new ArrayList<>();
-        taskList.add(task);
 
-        Scheduler scheduler = new Scheduler();
-        var result = scheduler.scheduleTasks(taskList);
+        Scheduler scheduler = new Scheduler(task);
+        var result = scheduler.scheduleTasks();
 
         assertEquals(Duration.ofMinutes(10), result.getTotalDuration());
 //        assertEquals(1, result.getOrderedTasksIds().size());
@@ -38,8 +36,8 @@ public class SchedulerTest {
         var t1 = new Task(1, "", Duration.ofMinutes(10), false, null);
         var t2 = new Task(2, "", Duration.ofMinutes(10), false, null);
 
-        Scheduler scheduler = new Scheduler();
-        var result = scheduler.scheduleTasks(List.of(t1, t2));
+        Scheduler scheduler = new Scheduler(t1, t2);
+        var result = scheduler.scheduleTasks();
         assertEquals(Duration.ofMinutes(20), result.getTotalDuration());
     }
 
@@ -47,13 +45,10 @@ public class SchedulerTest {
     public void testThrowIfDependentTaskIdListIsEmpty() {
         var t1 = new Task(1, "", Duration.ofMinutes(10), false, new ArrayList<>());
 
-        List<Task> taskList = new ArrayList<>();
-        taskList.add(t1);
-
-        Scheduler scheduler = new Scheduler();
+        Scheduler scheduler = new Scheduler(t1);
 
         try {
-            var result = scheduler.scheduleTasks(taskList);
+            var result = scheduler.scheduleTasks();
             fail("dependent task id list must not be empty");
         } catch (Exception ignored) {
 
@@ -70,8 +65,8 @@ public class SchedulerTest {
         var t9 = new Task(6, "", Duration.ofMinutes(5), false, List.of(4, 5));
         var t10 = new Task(7, "", Duration.ofMinutes(5), false, List.of(6));
 
-        Scheduler scheduler = new Scheduler();
-        ScheduleResult result = scheduler.scheduleTasks(List.of(t1, t2, t6, t7, t8, t9, t10));
+        Scheduler scheduler = new Scheduler(t1, t2, t6, t7, t8, t9, t10);
+        ScheduleResult result = scheduler.scheduleTasks();
     }
 
     @Test
@@ -89,10 +84,8 @@ public class SchedulerTest {
 
         var t10 = new Task(10, "", Duration.ofMinutes(10), false, List.of(6, 7, 8, 9));
 
-        List<Task> taskList = List.of(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);
-
-        Scheduler scheduler = new Scheduler();
-        var result = scheduler.scheduleTasks(taskList);
+        Scheduler scheduler = new Scheduler(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);
+        var result = scheduler.scheduleTasks();
 
 //        assertTrue(result.hasMultipleResults());
 
@@ -118,10 +111,8 @@ public class SchedulerTest {
 
         var t10 = new Task(10, "", Duration.ofMinutes(30), false, List.of(6, 7));
 
-        List<Task> taskList = List.of(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);
-
-        Scheduler scheduler = new Scheduler();
-        var result = scheduler.scheduleTasks(taskList);
+        Scheduler scheduler = new Scheduler(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);
+        var result = scheduler.scheduleTasks();
 
 //        assertTrue(result.hasMultipleResults());
 //        assertTrue(result.getWaitIntervals().isEmpty());
@@ -139,10 +130,8 @@ public class SchedulerTest {
         var t7 = new Task(7, "", Duration.ofMinutes(100), true, List.of(4));
         var t8 = new Task(8, "", Duration.ofMinutes(10), false, List.of(6, 7));
 
-        List<Task> taskList = List.of(t1, t2, t3, t4, t5, t6, t7, t8);
-
-        Scheduler scheduler = new Scheduler();
-        var result = scheduler.scheduleTasks(taskList);
+        Scheduler scheduler = new Scheduler(t1, t2, t3, t4, t5, t6, t7, t8);
+        var result = scheduler.scheduleTasks();
 
         assertEquals(170, result.getTotalDuration().toMinutes());
     }
@@ -160,10 +149,8 @@ public class SchedulerTest {
         var t9 = new Task(9, "", Duration.ofMinutes(1000), true, List.of(8));
         var t10 = new Task(10, "", Duration.ofMinutes(10), false, List.of(8, 9));
 
-        List<Task> taskList = List.of(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);
-
-        Scheduler scheduler = new Scheduler();
-        var result = scheduler.scheduleTasks(taskList);
+        Scheduler scheduler = new Scheduler(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);
+        var result = scheduler.scheduleTasks();
 
         assertEquals(Duration.ofMinutes(1215), result.getTotalDuration());
     }
@@ -185,10 +172,8 @@ public class SchedulerTest {
         var t13 = new Task(13, "", Duration.ofMinutes(30), false, List.of(10));
         var t14 = new Task(14, "", Duration.ofMinutes(20), false, List.of(11, 12, 13));
 
-        List<Task> taskList = List.of(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14);
-
-        Scheduler scheduler = new Scheduler();
-        var result = scheduler.scheduleTasks(taskList);
+        Scheduler scheduler = new Scheduler(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14);
+        var result = scheduler.scheduleTasks();
 
         assertEquals(Duration.ofMinutes(1215 + 60), result.getTotalDuration());
     }
@@ -231,10 +216,8 @@ public class SchedulerTest {
         var t28 = new Task(28, "", Duration.ofMinutes(15), true, List.of(25));
         var t29 = new Task(29, "", Duration.ofMinutes(30), false, List.of(26, 27, 28));
 
-        List<Task> taskList = List.of(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29);
-
-        Scheduler scheduler = new Scheduler();
-        var result = scheduler.scheduleTasks(taskList);
+        Scheduler scheduler = new Scheduler(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29);
+        var result = scheduler.scheduleTasks();
 
         assertTrue(result.hasMultipleResults());
         assertEquals(Duration.ofMinutes(235), result.getTotalDuration());

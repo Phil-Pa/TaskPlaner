@@ -7,11 +7,13 @@ import java.util.stream.Collectors;
 public class Scheduler {
 
     private final List<List<Task>> combinations = new ArrayList<>();
-    private List<Task> tasks;
+    private final List<Task> tasks;
 
-    public ScheduleResult scheduleTasks(List<Task> tasks) {
-        // TODO: refactor to pass this to constructor
-        this.tasks = tasks;
+    public Scheduler(Task... tasks) {
+        this.tasks = Arrays.stream(tasks).collect(Collectors.toList());
+    }
+
+    public ScheduleResult scheduleTasks() {
 
         if (tasks.stream().noneMatch(Task::hasDependentTasks)) {
             return handleNoDependentTasks(tasks);
