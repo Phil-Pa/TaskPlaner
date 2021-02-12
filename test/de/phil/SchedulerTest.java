@@ -154,7 +154,32 @@ public class SchedulerTest {
         Scheduler scheduler = new Scheduler();
         var result = scheduler.scheduleTasks(taskList);
 
-        assertEquals(Duration.ofMinutes(1230), result.getTotalDuration());
+        assertEquals(Duration.ofMinutes(1215), result.getTotalDuration());
+    }
+
+    @Test
+    public void testMixedBig() {
+        var t1 = new Task(1, "", Duration.ofMinutes(5), false, null);
+        var t2 = new Task(2, "", Duration.ofMinutes(10), false, List.of(1));
+        var t3 = new Task(3, "", Duration.ofMinutes(20), false, List.of(2));
+        var t4 = new Task(4, "", Duration.ofMinutes(100), true, List.of(3));
+        var t5 = new Task(5, "", Duration.ofMinutes(300), false, List.of(4));
+        var t6 = new Task(6, "", Duration.ofMinutes(10), true, null);
+        var t7 = new Task(7, "", Duration.ofMinutes(10), false, List.of(6));
+        var t8 = new Task(8, "", Duration.ofMinutes(200), false, List.of(7));
+        var t9 = new Task(9, "", Duration.ofMinutes(1000), true, List.of(8));
+        var t10 = new Task(10, "", Duration.ofMinutes(10), false, List.of(8, 9));
+        var t11 = new Task(11, "", Duration.ofMinutes(10), false, List.of(10));
+        var t12 = new Task(12, "", Duration.ofMinutes(20), true, List.of(10));
+        var t13 = new Task(13, "", Duration.ofMinutes(30), false, List.of(10));
+        var t14 = new Task(14, "", Duration.ofMinutes(20), false, List.of(11, 12, 13));
+
+        List<Task> taskList = List.of(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14);
+
+        Scheduler scheduler = new Scheduler();
+        var result = scheduler.scheduleTasks(taskList);
+
+        assertEquals(Duration.ofMinutes(1215 + 60), result.getTotalDuration());
     }
 
     //@Test

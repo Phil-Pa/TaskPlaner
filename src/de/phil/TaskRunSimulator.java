@@ -2,7 +2,6 @@ package de.phil;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class TaskRunSimulator {
     private final List<Task> tasks;

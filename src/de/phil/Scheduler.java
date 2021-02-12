@@ -1,86 +1,8 @@
 package de.phil;
 
-import java.lang.reflect.Array;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
-
-class Permutations<E> implements  Iterator<List<E>>{
-
-    private final List<E> arr;
-    private final int[] ind;
-    private boolean has_next;
-
-    private final List<E> output;//next() returns this array, make it public
-
-    Permutations(List<E> arr){
-        this.arr = new ArrayList<>(arr);
-        ind = new int[arr.size()];
-        //convert an array of any elements into array of integers - first occurrence is used to enumerate
-        Map<E, Integer> hm = new HashMap<E, Integer>();
-        for(int i = 0; i < arr.size(); i++){
-            Integer n = hm.get(arr.get(i));
-            if (n == null){
-                hm.put(arr.get(i), i);
-                n = i;
-            }
-            ind[i] = n;
-        }
-        Arrays.sort(ind);//start with ascending sequence of integers
-
-
-        //output = new E[arr.length]; <-- cannot do in Java with generics, so use reflection
-        output = new ArrayList<>(arr);
-        has_next = true;
-    }
-
-    public boolean hasNext() {
-        return has_next;
-    }
-
-    public List<E> next() {
-        if (!has_next)
-            throw new NoSuchElementException();
-
-        for(int i = 0; i < ind.length; i++){
-            output.set(i, arr.get(ind[i]));
-        }
-
-
-        //get next permutation
-        has_next = false;
-        for(int tail = ind.length - 1;tail > 0;tail--){
-            if (ind[tail - 1] < ind[tail]){//still increasing
-
-                //find last element which does not exceed ind[tail-1]
-                int s = ind.length - 1;
-                while(ind[tail-1] >= ind[s])
-                    s--;
-
-                swap(ind, tail-1, s);
-
-                //reverse order of elements in the tail
-                for(int i = tail, j = ind.length - 1; i < j; i++, j--){
-                    swap(ind, i, j);
-                }
-                has_next = true;
-                break;
-            }
-
-        }
-        return output;
-    }
-
-    private void swap(int[] arr, int i, int j){
-        int t = arr[i];
-        arr[i] = arr[j];
-        arr[j] = t;
-    }
-
-    public void remove() {
-
-    }
-}
 
 public class Scheduler {
 
@@ -88,19 +10,20 @@ public class Scheduler {
 
         List<ScheduleResult> results = new ArrayList<>();
 
-        List<List<Task>> permutations = buildTaskPermutations(tasks);
+        List<List<Task>> permutations = buildTaskCombinations(tasks); //buildTaskPermutations(tasks);
+
         for (List<Task> list : permutations) {
             TaskRunSimulator simulator = new TaskRunSimulator(list);
-            ScheduleResult result = null;
+
             try {
-                result = simulator.run();
+                ScheduleResult result = simulator.run();
+                if (result != null) {
+                    results.add(result);
+                }
             } catch (Exception e) {
                 System.out.println("Error in task simulation");
                 e.printStackTrace();
-                continue;
             }
-            if (result != null)
-                results.add(result);
         }
 
         // if there are multiple best duration, sort for the duration with the highest wait time
@@ -119,6 +42,214 @@ public class Scheduler {
         return results.get(bestDurationIndex);
     }
 
+    private static List<List<Task>> buildTaskCombinations(List<Task> tasks) {
+        List<List<Task>> combinations = new ArrayList<>();
+
+        Map<Integer, List<Task>> levelToPermutationMap = new HashMap<>();
+
+        for (Task task : tasks) {
+            int level = getTreeLevel(tasks, task);
+            if (!levelToPermutationMap.containsKey(level))
+                levelToPermutationMap.put(level, new ArrayList<>());
+
+            levelToPermutationMap.get(level).add(task);
+        }
+
+        Map<Integer, Permutations<Task>> levelPermutations = new HashMap<>(levelToPermutationMap.size());
+
+        for (var entry : levelToPermutationMap.entrySet()) {
+            levelPermutations.put(entry.getKey(), new Permutations<>(entry.getValue()));
+        }
+
+        int deepestLevel = 0;
+        for (var level : levelPermutations.keySet()) {
+            if (deepestLevel < level)
+                deepestLevel = level;
+        }
+
+//        for (var entry : levelPermutations.entrySet()) {
+//            foo1(entry.getValue(), combinations, deepestLevel, levelPermutations);
+//        }
+
+        __foo__(levelPermutations.entrySet().stream().findFirst().get().getValue(), combinations, 1, deepestLevel, levelPermutations, null, tasks.size(), 1);
+
+//        for (Permutations<Task> levelPermutation : levelPermutations.values()) {
+//            while (levelPermutation.hasNext()) {
+//                List<Task> permutation = levelPermutation.next();
+//
+//            }
+//        }
+
+//        Permutations<Task> e = levelPermutations.get(5);
+//
+//        Permutations<Task> a;
+//        Permutations<Task> b;
+//        Permutations<Task> c;
+//        Permutations<Task> d;
+
+        // 4 durchläufe
+//
+//        while (a.hasNext()) {
+//            while (b.hasNext()) {
+//                while (c.hasNext()) {
+//                    while (d.hasNext()) {
+//                        var nextA = a.next();
+//                        var nextB = b.next();
+//                        var nextC = c.next();
+//                        var nextD = d.next();
+//
+//                        List<Task> res = new ArrayList<>();
+//
+//                        for (Task t1 : nextA) {
+//                            for (Task t2 : nextB) {
+//                                for (Task t3 : nextC) {
+//                                    for (Task t4 : nextD) {
+//                                        res.add(t1);
+//                                        res.add(t2);
+//                                        res.add(t3);
+//                                        res.add(t4);
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+
+        return combinations;
+    }
+
+    private static void __foo__(Permutations<Task> value, List<List<Task>> combinations, int level, int deepestLevel, Map<Integer, Permutations<Task>> levelPermutations, List<Task> perm, int numTasks, int rec) {
+
+        if (perm == null) {
+            perm = new ArrayList<>();
+        }
+
+        if (level == 1) {
+            while (value.hasNext()) {
+                if (perm.size() >= 8) {
+                    perm.clear();
+                }
+                perm.addAll(value.next());
+
+                if (levelPermutations.containsKey(level + 1)) {
+                    __foo__(levelPermutations.get(level + 1), combinations, level + 1, deepestLevel, levelPermutations, perm, numTasks, rec);
+                }
+            }
+        } else {
+            if (value.hasNext()) {
+                perm.addAll(value.next());
+
+                if (levelPermutations.containsKey(level + 1)) {
+                    __foo__(levelPermutations.get(level + 1), combinations, level + 1, deepestLevel, levelPermutations, perm, numTasks, rec);
+                }
+            }
+        }
+
+        if (!combinations.contains(perm) && perm.size() == numTasks) {
+            List<Task> deepCopy = new ArrayList<>();
+            for (Task t : perm) {
+                deepCopy.add(Task.deepCopy(t));
+            }
+            combinations.add(deepCopy);
+            perm.clear();
+        }
+
+        if (!perm.isEmpty())
+            perm.clear();
+
+//        if (perm.size() < numTasks) {
+//            foo1(value, combinations, level - ++rec, deepestLevel, levelPermutations, perm, numTasks, rec);
+//        }
+
+    }
+
+    private static void bar(List<List<Task>> combinations, Map<Integer, Permutations<Task>> levelPermutations, int currentLevel) {
+        if (currentLevel < 1)
+            return;
+
+        Permutations<Task> permutations = levelPermutations.get(currentLevel);
+
+
+
+    }
+
+    private static int getTreeLevel(List<Task> tasks, Task task) {
+        int level = 1;
+
+        List<Integer> ids = task.getDependentTaskIds();
+        List<Task> dependentTasks = new ArrayList<>();
+        for (int id : tasks.stream().map(Task::getId).collect(Collectors.toList())) {
+            if (ids == null)
+                return level;
+            for (int i : ids) {
+                if (id == i) {
+                    dependentTasks.addAll(tasks.stream().filter(it -> it.getId() == i).collect(Collectors.toList()));
+                }
+            }
+        }
+
+        if (dependentTasks.isEmpty()) {
+            return level;
+        }
+
+        for (Task t : dependentTasks) {
+            level += getTreeLevel(dependentTasks, t);
+        }
+
+        return level;
+    }
+
+    private static List<List<Task>> __bar__(List<Task> tasks) {
+        return null;
+    }
+
+    // a bit efficient, but not really
+    private static List<List<Task>> foo(List<Task> tasks) {
+        List<List<Task>> combinations = new ArrayList<>();
+
+        List<Task> leaves = getLeaves(tasks);
+        Task root = getRoot(tasks);
+
+        List<Task> middleTasks = new ArrayList<>(tasks);
+
+        middleTasks.remove(root);
+        middleTasks.removeAll(leaves);
+
+        Permutations<Task> leafPermutations = new Permutations<>(leaves);
+        Permutations<Task> middlePermutations = new Permutations<>(middleTasks);
+
+        List<Integer> tasksDoneIds = new ArrayList<>(tasks.size());
+        for (int i = 0; i < tasks.size(); i++)
+            tasksDoneIds.add(-1);
+
+        while (leafPermutations.hasNext()) {
+            List<Task> leafPerm = leafPermutations.next();
+            while (middlePermutations.hasNext()) {
+                List<Task> middlePerm = middlePermutations.next();
+                List<Task> perm = new ArrayList<>(leafPerm.size() + middlePerm.size() + 1);
+                perm.addAll(leafPerm.stream().map(Task::deepCopy).collect(Collectors.toList()));
+                perm.addAll(middlePerm.stream().map(Task::deepCopy).collect(Collectors.toList()));
+                perm.add(Task.deepCopy(root));
+
+                if (isDoable(perm, tasksDoneIds))
+                    combinations.add(perm);
+            }
+        }
+
+        return combinations;
+    }
+
+    private static Task getRoot(List<Task> tasks) {
+        return tasks.stream().max(Comparator.comparingInt(Task::getId)).orElseThrow();
+    }
+
+    private static List<Task> getLeaves(List<Task> tasks) {
+        return tasks.stream().filter(t -> !t.hasDependentTasks()).collect(Collectors.toList());
+    }
+
+    // not very efficient
     private static List<List<Task>> buildTaskPermutations(List<Task> tasks) {
         // init tasks done ids
         List<Integer> tasksDoneIds = new ArrayList<>(tasks.size());
@@ -135,14 +266,11 @@ public class Scheduler {
 
             Collections.fill(tasksDoneIds, -1);
 
-//            if (count == 0 || count == 24 || count == 120 || count == 720 || count == 744 || count == 960)
-//                System.out.println();
 
             if (isDoable(perm, tasksDoneIds)) {
-//                System.out.println("added at " + count);
                 List<Task> deepCopy = new ArrayList<>(perm.size());
-                for (int i = 0; i < perm.size(); i++)
-                    deepCopy.add(Task.deepCopy(perm.get(i)));
+                for (Task task : perm)
+                    deepCopy.add(Task.deepCopy(task));
                 lists.add(new ArrayList<>(deepCopy));
             }
 
@@ -171,7 +299,9 @@ public class Scheduler {
                 }
             }
 
-            taskIdsDone.set(currentTaskNum++, task.getId());
+            if (taskIdsDone.size() > currentTaskNum) {
+                taskIdsDone.set(currentTaskNum++, task.getId());
+            }
         }
 
         return currentTaskNum == taskIdsDone.size();
