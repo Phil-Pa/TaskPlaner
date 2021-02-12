@@ -21,6 +21,7 @@ public class SchedulerTest {
 //        assertEquals(1, result.getOrderedTasksIds().size());
 //        assertEquals(1, result.getOrderedTasksIds().get(0).intValue());
 //        assertFalse(result.hasMultipleResults());
+        
     }
 
     @Test
@@ -30,6 +31,16 @@ public class SchedulerTest {
 
         var t2 = new Task(1, "", Duration.ofMinutes(10), true, null);
         testOneTaskImpl(t2);
+    }
+
+    @Test
+    public void testTwoTasks() {
+        var t1 = new Task(1, "", Duration.ofMinutes(10), false, null);
+        var t2 = new Task(2, "", Duration.ofMinutes(10), false, null);
+
+        Scheduler scheduler = new Scheduler();
+        var result = scheduler.scheduleTasks(List.of(t1, t2));
+        assertEquals(Duration.ofMinutes(20), result.getTotalDuration());
     }
 
     @Test
@@ -157,7 +168,7 @@ public class SchedulerTest {
         assertEquals(Duration.ofMinutes(1215), result.getTotalDuration());
     }
 
-    @Test
+    //@Test
     public void testMixedBig() {
         var t1 = new Task(1, "", Duration.ofMinutes(5), false, null);
         var t2 = new Task(2, "", Duration.ofMinutes(10), false, List.of(1));

@@ -8,9 +8,13 @@ public class Scheduler {
 
     public ScheduleResult scheduleTasks(List<Task> tasks) {
 
+        if (tasks.stream().noneMatch(Task::hasDependentTasks)) {
+            return handleNoDependentTasks(tasks);
+        }
+
         List<ScheduleResult> results = new ArrayList<>();
 
-        List<List<Task>> permutations = buildTaskCombinations(tasks); //buildTaskPermutations(tasks);
+        List<List<Task>> permutations = foo(tasks); //buildTaskPermutations(tasks);
 
         for (List<Task> list : permutations) {
             TaskRunSimulator simulator = new TaskRunSimulator(list);
@@ -40,6 +44,56 @@ public class Scheduler {
         }
 
         return results.get(bestDurationIndex);
+    }
+
+    private static ScheduleResult scheduleParallelTasks(List<Task> tasks) {
+        Duration maxDuration = Duration.ZERO;
+        for (Task task : tasks) {
+            if (task.getDuration().compareTo(maxDuration) > 0) {
+                maxDuration = task.getDuration();
+            }
+        }
+        // TODO: handle multiple results return value
+        return new ScheduleResult(maxDuration, tasks.stream().map(Task::getId).collect(Collectors.toList()), false, new HashMap<>());
+    }
+
+    private static ScheduleResult scheduleSequentialTasks(List<Task> tasks) {
+        Duration duration = Duration.ZERO;
+        for (Task task : tasks) {
+            duration = duration.plus(task.getDuration());
+        }
+        // TODO: handle multiple results return value
+        return new ScheduleResult(duration, tasks.stream().map(Task::getId).collect(Collectors.toList()), false, new HashMap<>());
+    }
+
+    private static ScheduleResult handleNoDependentTasks(List<Task> tasks) {
+        // handle parallel tasks
+        if (tasks.stream().allMatch(Task::isParallel)) {
+            return scheduleParallelTasks(tasks);
+        } else if (tasks.stream().noneMatch(Task::isParallel)) {
+            return scheduleSequentialTasks(tasks);
+        } else {
+            // tasks must be mixed
+
+            List<Task> parallelTasks = tasks.stream().filter(Task::isParallel).collect(Collectors.toList());
+            List<Task> sequentialTasks = tasks.stream().filter(it -> !it.isParallel()).collect(Collectors.toList());
+
+            Duration parallelDuration = scheduleParallelTasks(parallelTasks).getTotalDuration();
+            Duration sequentialDuration = scheduleSequentialTasks(sequentialTasks).getTotalDuration();
+
+            Duration totalDuration = switch (parallelDuration.compareTo(sequentialDuration)) {
+                case 1 -> parallelDuration;
+                case -1 -> sequentialDuration;
+                default -> sequentialDuration;
+            };
+
+            List<Integer> orderIds = new ArrayList<>();
+            orderIds.addAll(parallelTasks.stream().map(Task::getId).collect(Collectors.toList()));
+            orderIds.addAll(sequentialTasks.stream().map(Task::getId).collect(Collectors.toList()));
+
+            // TODO: handle multiple results return value
+            return new ScheduleResult(totalDuration, orderIds, false, new HashMap<>());
+        }
     }
 
     private static List<List<Task>> buildTaskCombinations(List<Task> tasks) {
