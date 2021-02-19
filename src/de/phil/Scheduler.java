@@ -114,14 +114,23 @@ public class Scheduler {
         return combinations;
     }
 
-    private void rec(Task leaf, List<Task> permutation) {
-        List<Task> dependencies = tasks.stream().filter(it -> {
+    public List<Task> getDependenciesOfTask(Task task) {
+
+        if (!task.hasDependentTasks())
+            return new ArrayList<>();
+
+        return tasks.stream().filter(it -> {
             if (it.hasDependentTasks()) {
-                return leaf.getDependentTaskIds().contains(it.getId());
+                return task.getDependentTaskIds().contains(it.getId());
             } else {
                 return false;
             }
         }).collect(Collectors.toList());
+    }
+
+    private void rec(Task leaf, List<Task> permutation) {
+
+        List<Task> dependencies = getDependenciesOfTask(leaf);
 
         if (!permutation.contains(leaf))
             permutation.add(leaf);

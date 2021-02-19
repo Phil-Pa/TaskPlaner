@@ -225,4 +225,25 @@ public class SchedulerTest {
         assertEquals(29, result.getOrderedTasksIds().stream().distinct().count());
     }
 
+    @Test
+    public void testGetTaskDependencies() {
+        var t1 = new Task(1, "", Duration.ofMinutes(5), false, null);
+        var t2 = new Task(2, "", Duration.ofMinutes(10), false, List.of(1));
+        var t3 = new Task(3, "", Duration.ofMinutes(20), false, List.of(2));
+        var t4 = new Task(4, "", Duration.ofMinutes(100), true, List.of(3));
+        var t5 = new Task(5, "", Duration.ofMinutes(300), false, List.of(4));
+        var t6 = new Task(6, "", Duration.ofMinutes(10), true, null);
+        var t7 = new Task(7, "", Duration.ofMinutes(10), false, List.of(6));
+        var t8 = new Task(8, "", Duration.ofMinutes(200), false, List.of(7));
+        var t9 = new Task(9, "", Duration.ofMinutes(1000), true, List.of(8));
+        var t10 = new Task(10, "", Duration.ofMinutes(10), false, List.of(8, 9));
+
+        Scheduler scheduler = new Scheduler(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);
+
+        List<Task> dependencies = scheduler.getDependenciesOfTask(t10);
+
+        assertEquals(List.of(t8, t9), dependencies);
+        assertEquals(new ArrayList<>(), scheduler.getDependenciesOfTask(t1));
+    }
+
 }
