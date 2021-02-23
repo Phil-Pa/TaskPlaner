@@ -1,5 +1,6 @@
 package de.phil;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,10 @@ public class Main {
         }
 
         System.out.println(sum.getValue());
+
+        int[] array = new int[] { 1, 2, 4 };
+
+        System.out.println(Arrays.stream(array).sum());
 
     }
 
