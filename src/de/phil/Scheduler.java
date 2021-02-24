@@ -20,7 +20,9 @@ public class Scheduler {
             return handleNoDependentTasks(tasks);
         }
 
-        List<List<Task>> permutations = SchedulerUtils.buildPermutations(tasks); //buildTaskPermutations(tasks);
+        TaskSequenceGenerator generator = new TaskSequenceGenerator(tasks, null);
+        generator.alltopologicalSorts();
+        List<List<Task>> permutations = generator.getPermutations(); //buildTaskPermutations(tasks);
 
         if (permutations.size() >= MANY_PERMUTATIONS_THRESHOLD) {
             return scheduleMultiThreaded(permutations);
