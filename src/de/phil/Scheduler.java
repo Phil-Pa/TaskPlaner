@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 public class Scheduler {
 
+    private static final int MANY_PERMUTATIONS_THRESHOLD = 50000;
     private final List<List<Task>> combinations = new ArrayList<>();
     private final List<Task> tasks;
 
@@ -19,9 +20,85 @@ public class Scheduler {
             return handleNoDependentTasks(tasks);
         }
 
-        List<ScheduleResult> results = new ArrayList<>();
-
         List<List<Task>> permutations = SchedulerUtils.buildPermutations(tasks); //buildTaskPermutations(tasks);
+
+        if (permutations.size() >= MANY_PERMUTATIONS_THRESHOLD) {
+            return scheduleMultiThreaded(permutations);
+        } else {
+            return scheduleSingleThreaded(permutations);
+        }
+    }
+
+    private ScheduleResult scheduleMultiThreaded(List<List<Task>> permutations) {
+        List<ScheduleResult> results = new ArrayList<>(permutations.size());
+        int numThreads = 8; //Thread.activeCount();
+
+        List<Thread> threads = new ArrayList<>();
+        List<List<ScheduleResult>> threadResults = new ArrayList<>();
+
+        List<Integer> rangeStart = new ArrayList<>();
+        List<Integer> rangeEnd = new ArrayList<>();
+
+        int numPerThread = permutations.size() / numThreads;
+        for (int i = 0; i < numThreads - 1; i++) {
+            rangeStart.add(i * numPerThread);
+            rangeEnd.add((i + 1) * numPerThread - 1);
+        }
+
+        rangeStart.add(rangeEnd.get(rangeEnd.size() - 1) + 1);
+        rangeEnd.add(permutations.size() - 1);
+
+        for (int i = 0; i < numThreads; i++) {
+            threadResults.add(new ArrayList<>(permutations.size() / numThreads + numThreads + 1));
+            int finalI = i;
+            threads.add(new Thread(() -> {
+                int start = rangeStart.get(finalI);
+                int end = rangeEnd.get(finalI);
+
+                for (int j = start; j < end; j++) {
+                    TaskRunSimulator simulator = new TaskRunSimulator(permutations.get(j));
+                    ScheduleResult result = simulator.run();
+                    threadResults.get(finalI).add(result);
+                }
+            }));
+            threads.get(i).start();
+        }
+
+        for (Thread thread : threads) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        for (List<ScheduleResult> tempResults : threadResults) {
+            results.addAll(tempResults);
+        }
+
+        // if there are multiple best duration, sort for the duration with the highest wait time
+        // and then for length of the intervals (higher is better)
+
+        Duration bestDuration = Duration.ofDays(1);
+        int bestDurationIndex = 0;
+
+        for (int i = 0; i < results.size(); i++) {
+            if (results.get(i).getTotalDuration().minus(bestDuration).isNegative()) {
+                bestDuration = results.get(i).getTotalDuration();
+                bestDurationIndex = i;
+            }
+        }
+
+        ScheduleResult result = results.get(bestDurationIndex);
+        result.setNumPossiblePaths(results.size());
+
+        System.out.println("possible paths: " + result.getNumPossiblePaths());
+
+        return result;
+    }
+
+    private ScheduleResult scheduleSingleThreaded(List<List<Task>> permutations) {
+        List<ScheduleResult> results = new ArrayList<>(permutations.size());
 
         for (List<Task> list : permutations) {
             TaskRunSimulator simulator = new TaskRunSimulator(list);

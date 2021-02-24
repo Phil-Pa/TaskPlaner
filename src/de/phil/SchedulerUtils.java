@@ -75,7 +75,7 @@ class SchedulerUtils {
             }
             this.indegree = new int[v];
             this.marked = new boolean[v];
-            list = new ArrayList<Integer>();
+            list = new ArrayList<>();
             permutations = new ArrayList<>(1000);
         }
 
@@ -114,7 +114,7 @@ class SchedulerUtils {
                         int k = iter.next();
                         indegree[k]++;
                     }
-                    list.remove(list.indexOf(w));
+                    list.remove((Integer) w);
 
                     flag = true;
                 }
