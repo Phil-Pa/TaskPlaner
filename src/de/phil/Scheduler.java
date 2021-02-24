@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 public class Scheduler {
 
     private static final int MANY_PERMUTATIONS_THRESHOLD = 50000;
-    private final List<List<Task>> combinations = new ArrayList<>();
     private final List<Task> tasks;
 
     public Scheduler(Task... tasks) {
@@ -61,6 +60,9 @@ public class Scheduler {
                     TaskRunSimulator simulator = new TaskRunSimulator(permutations.get(j));
                     ScheduleResult result = simulator.run();
                     threadResults.get(finalI).add(result);
+
+                    // will gc allow to free the memory
+                    permutations.set(j, null);
                 }
             }));
             threads.get(i).start();
@@ -101,11 +103,19 @@ public class Scheduler {
 
     private ScheduleResult scheduleSingleThreaded(List<List<Task>> permutations) {
         List<ScheduleResult> results = new ArrayList<>(permutations.size());
+        System.out.println("scheduling single threaded");
 
-        for (List<Task> list : permutations) {
+        // memory optimization:
+        // remove permutation from permutations so that memory gets cleaned
+        // and it's not used elsewhere
+        while (!permutations.isEmpty()) {
+            List<Task> list = permutations.remove(permutations.size() - 1);
             TaskRunSimulator simulator = new TaskRunSimulator(list);
             ScheduleResult result = simulator.run();
             results.add(result);
+
+            if (results.size() % 50000 == 0)
+                System.out.println("results: " + results.size());
         }
 
         // if there are multiple best duration, sort for the duration with the highest wait time
@@ -114,11 +124,16 @@ public class Scheduler {
         Duration bestDuration = Duration.ofDays(1);
         int bestDurationIndex = 0;
 
+        System.out.println("calc best duration");
+
         for (int i = 0; i < results.size(); i++) {
             if (results.get(i).getTotalDuration().minus(bestDuration).isNegative()) {
                 bestDuration = results.get(i).getTotalDuration();
                 bestDurationIndex = i;
             }
+
+            if (i % 50000 == 0)
+                System.out.println("progress: " + i);
         }
 
         ScheduleResult result = results.get(bestDurationIndex);

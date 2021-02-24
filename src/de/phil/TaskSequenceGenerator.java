@@ -128,6 +128,9 @@ public class TaskSequenceGenerator {
                 */
             permutations.add(tempPermutation);
 
+            if (permutations.size() % 50000 == 0)
+                System.out.println("topo: " + permutations.size());
+
             //consumer.accept(tempPermutation);
             // produce(tempPermutation);
 
@@ -158,8 +161,12 @@ public class TaskSequenceGenerator {
                 temp.add(Task.deepCopy(filteredTask));
             }
             taskPermutations.add(temp);
+
+            if (taskPermutations.size() % 50000 == 0)
+                System.out.println("get perm" + taskPermutations.size());
         }
 
+        System.out.println("finished get perm");
         return taskPermutations;
     }
 }
