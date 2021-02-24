@@ -10,13 +10,21 @@ class SchedulerUtils {
 
         List<List<Task>> permutations = new ArrayList<>(intPermutationsGraphAllTopSorts.size());
 
-        for (int i = 0; i < intPermutationsGraphAllTopSorts.size(); i++) {
+        for (List<Integer> intPermutationsGraphAllTopSort : intPermutationsGraphAllTopSorts) {
             List<Task> temp = new ArrayList<>(tasks.size());
-            for (int j = 0; j < intPermutationsGraphAllTopSorts.get(i).size(); j++) {
-                int finalI = i;
-                int finalJ = j;
-                Task filteredTask = tasks.stream().filter(it -> it.getId() ==
-                        intPermutationsGraphAllTopSorts.get(finalI).get(finalJ) + 1).findFirst().orElseThrow();
+            for (Integer integer : intPermutationsGraphAllTopSort) {
+
+                Task filteredTask = null;
+
+                for (Task task : tasks) {
+                    if (task.getId() == integer + 1) {
+                        filteredTask = task;
+                        break;
+                    }
+                }
+
+                assert (filteredTask != null);
+
                 temp.add(Task.deepCopy(filteredTask));
             }
             permutations.add(temp);
