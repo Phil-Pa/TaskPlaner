@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.*;
 
@@ -135,6 +136,10 @@ public class SchedulerTest {
         var result = scheduler.scheduleTasks();
 
         assertEquals(170, result.getTotalDuration().toMinutes());
+        assertEquals(1, result.getWaitIntervals().size());
+        assertTrue(result.getWaitIntervals().containsKey(Duration.ofMinutes(80)));
+        assertEquals(1, result.getWaitIntervals().get(Duration.ofMinutes(80)).intValue());
+        assertEquals(List.of(1, 2, 3, 4, 7, 5, 6, 8), result.getOrderedTasksIds());
     }
 
     @Test
@@ -181,7 +186,7 @@ public class SchedulerTest {
         System.out.println(Arrays.toString(result.getOrderedTasksIds().toArray()));
     }
 
-    //@Test
+    @Test
     public void testMixed() {
         var t1 = new Task(1, "", Duration.ofMinutes(10), false, null);
         var t2 = new Task(2, "", Duration.ofMinutes(20), false, null);
@@ -219,10 +224,9 @@ public class SchedulerTest {
         var t28 = new Task(28, "", Duration.ofMinutes(15), true, List.of(25));
         var t29 = new Task(29, "", Duration.ofMinutes(30), false, List.of(26, 27, 28));
 
-        Scheduler scheduler = new Scheduler(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29);
+        Scheduler scheduler = new Scheduler(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13/*, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29*/);
         var result = scheduler.scheduleTasks();
 
-        assertTrue(result.hasMultipleResults());
         assertEquals(Duration.ofMinutes(235), result.getTotalDuration());
         assertEquals(29, result.getOrderedTasksIds().size());
         assertEquals(29, result.getOrderedTasksIds().stream().distinct().count());

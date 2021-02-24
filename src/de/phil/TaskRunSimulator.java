@@ -7,6 +7,7 @@ public class TaskRunSimulator {
     private final List<Task> tasks;
     private final List<Task> parallelTaskList = new ArrayList<>();
     private final Set<Integer> tasksDoneIds = new NotOrderedSet<>();
+    private final Set<Integer> taskOrderDoneIds = new NotOrderedSet<>();
     private final Map<Duration, Integer> waitIntervals = new HashMap<>();
     private Duration totalDuration = Duration.ZERO;
 
@@ -14,7 +15,7 @@ public class TaskRunSimulator {
         this.tasks = tasks;
     }
 
-    public ScheduleResult run() throws Exception {
+    public ScheduleResult run() {
         // handle single task
         if (tasks.size() == 1) {
             totalDuration = tasks.get(0).getDuration();
@@ -25,6 +26,7 @@ public class TaskRunSimulator {
 
                 // keep adding as many parallel tasks as possible
                 if (task.isParallel() && taskDependenciesSatisfied(task) && !parallelTaskList.contains(task)) {
+                    taskOrderDoneIds.add(task.getId());
                     parallelTaskList.add(task);
                     continue;
                 }
@@ -50,6 +52,7 @@ public class TaskRunSimulator {
 
                     // start new available tasks
                     parallelTaskList.addAll(newAvailableParallelTasks);
+                    newAvailableParallelTasks.forEach(t -> taskOrderDoneIds.add(t.getId()));
 
                     if (task.isParallel())
                         continue;
@@ -59,7 +62,7 @@ public class TaskRunSimulator {
             }
         }
 
-        return new ScheduleResult(totalDuration, new ArrayList<>(tasksDoneIds), false, waitIntervals);
+        return new ScheduleResult(totalDuration, new ArrayList<>(taskOrderDoneIds), 1, waitIntervals);
     }
 
     private void doSequentialWork(Task task) {
@@ -76,6 +79,7 @@ public class TaskRunSimulator {
 
             // start new available tasks
             parallelTaskList.addAll(newAvailableParallelTasks);
+            newAvailableParallelTasks.forEach(t -> taskOrderDoneIds.add(t.getId()));
         }
     }
 
@@ -116,9 +120,9 @@ public class TaskRunSimulator {
         return time;
     }
 
-    private List<Task> fetchParallelTaskDependencies(Task task) throws Exception {
-        if (!task.hasDependentTasks())
-            throw new IllegalStateException("can only fetch dependencies if task has dependencies");
+    private List<Task> fetchParallelTaskDependencies(Task task) {
+
+        assert(task.hasDependentTasks());
 
         List<Task> parallelDependencies = new ArrayList<>();
         for (Task t : tasks) {
@@ -142,6 +146,7 @@ public class TaskRunSimulator {
     }
 
     private void doSequentialTask(Task task) {
+        taskOrderDoneIds.add(task.getId());
         totalDuration = task.getDuration().plus(totalDuration);
     }
 

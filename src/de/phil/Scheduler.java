@@ -25,16 +25,8 @@ public class Scheduler {
 
         for (List<Task> list : permutations) {
             TaskRunSimulator simulator = new TaskRunSimulator(list);
-
-            try {
-                ScheduleResult result = simulator.run();
-                if (result != null) {
-                    results.add(result);
-                }
-            } catch (Exception e) {
-                System.out.println("Error in task simulation");
-                e.printStackTrace();
-            }
+            ScheduleResult result = simulator.run();
+            results.add(result);
         }
 
         // if there are multiple best duration, sort for the duration with the highest wait time
@@ -50,7 +42,12 @@ public class Scheduler {
             }
         }
 
-        return results.get(bestDurationIndex);
+        ScheduleResult result = results.get(bestDurationIndex);
+        result.setNumPossiblePaths(results.size());
+
+        System.out.println("possible paths: " + result.getNumPossiblePaths());
+
+        return result;
     }
 
     private static ScheduleResult scheduleParallelTasks(List<Task> tasks) {
@@ -61,7 +58,7 @@ public class Scheduler {
             }
         }
         // TODO: handle multiple results return value
-        return new ScheduleResult(maxDuration, tasks.stream().map(Task::getId).collect(Collectors.toList()), false, new HashMap<>());
+        return new ScheduleResult(maxDuration, tasks.stream().map(Task::getId).collect(Collectors.toList()), 1, new HashMap<>());
     }
 
     private static ScheduleResult scheduleSequentialTasks(List<Task> tasks) {
@@ -70,7 +67,7 @@ public class Scheduler {
             duration = duration.plus(task.getDuration());
         }
         // TODO: handle multiple results return value
-        return new ScheduleResult(duration, tasks.stream().map(Task::getId).collect(Collectors.toList()), false, new HashMap<>());
+        return new ScheduleResult(duration, tasks.stream().map(Task::getId).collect(Collectors.toList()), 1, new HashMap<>());
     }
 
     private static ScheduleResult handleNoDependentTasks(List<Task> tasks) {
@@ -100,7 +97,7 @@ public class Scheduler {
             orderIds.addAll(sequentialTasks.stream().map(Task::getId).collect(Collectors.toList()));
 
             // TODO: handle multiple results return value
-            return new ScheduleResult(totalDuration, orderIds, false, new HashMap<>());
+            return new ScheduleResult(totalDuration, orderIds, 1, new HashMap<>());
         }
     }
 

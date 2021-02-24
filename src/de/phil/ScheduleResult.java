@@ -8,13 +8,13 @@ public class ScheduleResult {
 
     private final Duration totalDuration;
     private final List<Integer> orderedTasksIds;
-    private final boolean multipleResults;
     private final Map<Duration, Integer> waitIntervals;
+    private int numPossiblePaths;
 
-    public ScheduleResult(Duration totalDuration, List<Integer> orderedTasksIds, boolean multipleResults, Map<Duration, Integer> waitIntervals) {
+    public ScheduleResult(Duration totalDuration, List<Integer> orderedTasksIds, int numPossiblePaths, Map<Duration, Integer> waitIntervals) {
         this.totalDuration = totalDuration;
         this.orderedTasksIds = orderedTasksIds;
-        this.multipleResults = multipleResults;
+        this.numPossiblePaths = numPossiblePaths;
         this.waitIntervals = waitIntervals;
     }
 
@@ -26,11 +26,15 @@ public class ScheduleResult {
         return orderedTasksIds;
     }
 
-    public boolean hasMultipleResults() {
-        return multipleResults;
+    public int getNumPossiblePaths() {
+        return numPossiblePaths;
     }
 
     public Map<Duration, Integer> getWaitIntervals() {
         return waitIntervals;
+    }
+
+    public void setNumPossiblePaths(int numPossiblePaths) {
+        this.numPossiblePaths = numPossiblePaths;
     }
 }
