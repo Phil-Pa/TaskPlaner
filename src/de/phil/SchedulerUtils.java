@@ -127,6 +127,13 @@ class SchedulerUtils {
                 for (int w = 0; w < V; w++) {
                     tempPermutation.add(list.get(w));
                 }
+
+                /* TODO: make this a generator function and cache some temporary
+                         permutations for the threads to execute and to not run
+                         out of work. then we would have a much lower memory usage
+                         for any high number of tasks to be scheduled, only cpu
+                         usage would be a limit.
+                */
                 permutations.add(tempPermutation);
                 //System.out.println(permutations.size());
             }
