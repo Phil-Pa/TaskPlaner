@@ -6,7 +6,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.Assert.*;
 
@@ -47,12 +46,10 @@ public class SchedulerTest {
     public void testThrowIfDependentTaskIdListIsEmpty() {
         var t1 = new Task(1, "", Duration.ofMinutes(10), false, new ArrayList<>());
 
-        Scheduler scheduler = new Scheduler(t1);
-
         try {
-            var result = scheduler.scheduleTasks();
+            Scheduler scheduler = new Scheduler(t1);
             fail("dependent task id list must not be empty");
-        } catch (Exception ignored) {
+        } catch (AssertionError ignored) {
 
         }
     }
@@ -139,7 +136,7 @@ public class SchedulerTest {
         assertEquals(1, result.getWaitIntervals().size());
         assertTrue(result.getWaitIntervals().containsKey(Duration.ofMinutes(80)));
         assertEquals(1, result.getWaitIntervals().get(Duration.ofMinutes(80)).intValue());
-        assertEquals(List.of(1, 2, 3, 4, 7, 5, 6, 8), result.getOrderedTasksIds());
+        assertEquals(List.of(2, 1, 3, 4, 7, 5, 6, 8), result.getOrderedTasksIds());
     }
 
     @Test

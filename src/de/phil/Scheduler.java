@@ -10,6 +10,10 @@ public class Scheduler {
     private final List<Task> tasks;
 
     public Scheduler(Task... tasks) {
+
+        boolean tasksEqualsNullOrNotEmpty = Arrays.stream(tasks).anyMatch(it -> it.getDependentTaskIds() == null || !it.getDependentTaskIds().isEmpty());
+        assert(tasksEqualsNullOrNotEmpty);
+
         this.tasks = Arrays.stream(tasks).collect(Collectors.toList());
     }
 
@@ -19,9 +23,9 @@ public class Scheduler {
             return handleNoDependentTasks(tasks);
         }
 
-        TaskSequenceGenerator generator = new TaskSequenceGenerator(tasks, null);
+        TaskSequenceGenerator generator = new TaskSequenceGenerator(tasks, (it) -> System.out.println(it.size()));
         generator.alltopologicalSorts();
-        List<List<Task>> permutations = generator.getPermutations(); //buildTaskPermutations(tasks);
+        List<List<Task>> permutations = generator.getPermutations();
 
         if (permutations.size() >= MANY_PERMUTATIONS_THRESHOLD) {
             return scheduleMultiThreaded(permutations);
