@@ -49,6 +49,16 @@ public class TaskRunSimulator {
                     // start new available parallel tasks
 
                     List<Task> newAvailableParallelTasks = fetchAvailableParallelTasks();
+                    // for t in newAvail..-> if t == task remove t from newAvail..
+
+                    /*
+                    for (int i = 0; i < newAvailableParallelTasks.size(); i++) {
+                        if (newAvailableParallelTasks.get(i) == task) {
+                            newAvailableParallelTasks.remove(task);
+                            i--;
+                        }
+                    }
+                     */
 
                     // start new available tasks
                     parallelTaskList.addAll(newAvailableParallelTasks);

@@ -6,10 +6,13 @@ import java.util.stream.Collectors;
 
 public class Scheduler {
 
-    private static final int MANY_PERMUTATIONS_THRESHOLD = 50000;
+    private static final int MANY_PERMUTATIONS_THRESHOLD = 5000000;
     private final List<Task> tasks;
 
     public Scheduler(Task... tasks) {
+
+        if (!isValidTreeDataStructure(Arrays.stream(tasks).collect(Collectors.toList())))
+            throw new IllegalArgumentException("tasks are not valid tree");
 
         boolean tasksEqualsNullOrNotEmpty = Arrays.stream(tasks).anyMatch(it -> it.getDependentTaskIds() == null || !it.getDependentTaskIds().isEmpty());
         assert(tasksEqualsNullOrNotEmpty);
@@ -17,6 +20,23 @@ public class Scheduler {
         this.tasks = Arrays.stream(tasks).collect(Collectors.toList());
     }
 
+    private boolean isValidTreeDataStructure(List<Task> tasks) {
+        List<Integer> ids = tasks.stream().map(it -> it.getDependentTaskIds() == null ? new ArrayList<Integer>() : it.getDependentTaskIds()).flatMap(Collection::stream).collect(Collectors.toList());
+
+        return (long) ids.size() == ids.stream().distinct().count();
+    }
+
+    /**
+     * Task Scheduling works fine with a tree data structure, but if possible, general graphs
+     * without circles should also be supported. But nodes in graphs, even without circles,
+     * have an ambiguous depth, for example:
+     * 1 -> 2
+     * 1 -> 3
+     * 2 -> 3
+     * There you could go directly to node 3 with depth 1, or from 1 to 2 and then from 2 to 3
+     * with depth 2. Maybe this has no impact to our solution, but it should be aware.
+     * @return The result of the simulation going through the tasks in the given sequence.
+     */
     public ScheduleResult scheduleTasks() {
 
         if (tasks.stream().noneMatch(Task::hasDependentTasks)) {
@@ -114,6 +134,7 @@ public class Scheduler {
         // and it's not used elsewhere
         while (!permutations.isEmpty()) {
             List<Task> list = permutations.remove(permutations.size() - 1);
+
             TaskRunSimulator simulator = new TaskRunSimulator(list);
             ScheduleResult result = simulator.run();
             results.add(result);
@@ -168,6 +189,7 @@ public class Scheduler {
         return new ScheduleResult(duration, tasks.stream().map(Task::getId).collect(Collectors.toList()), 1, new HashMap<>());
     }
 
+    // TODO: maybe make the method non static and use the tasks member field
     private static ScheduleResult handleNoDependentTasks(List<Task> tasks) {
         // handle parallel tasks
         if (tasks.stream().allMatch(Task::isParallel)) {
@@ -197,6 +219,66 @@ public class Scheduler {
             // TODO: handle multiple results return value
             return new ScheduleResult(totalDuration, orderIds, 1, new HashMap<>());
         }
+    }
+
+    private static List<Task> foo(List<Task> tasks, int depth) {
+        while (true) {
+            List<Task> depthTasks = findNodesWithDepth(tasks, depth);
+            if (!depthTasks.isEmpty())
+                return depthTasks;
+        }
+    }
+
+    private static List<Task> findNodesWithDepth(List<Task> tasks, int depth) {
+
+        // assume the tasks build a tree
+        Map<Integer, List<Task>> depthToTasksMap = new HashMap<>();
+
+        // TODO: optimize for number of map entries
+        for (int i = 1; i <= tasks.size(); i++) {
+            depthToTasksMap.put(i, new ArrayList<>());
+        }
+
+        for (Task task : tasks) {
+            int taskDepth = getTaskDepth(tasks, task);
+            depthToTasksMap.get(taskDepth).add(task);
+        }
+
+        return new ArrayList<>(depthToTasksMap.get(depth));
+    }
+
+    private static List<List<Task>> findSubTrees(List<Task> tasks, int numSubNodes) {
+        List<List<Task>> subTrees = new ArrayList<>();
+        List<Task> leaves = tasks.stream().filter(it -> !it.hasDependentTasks()).collect(Collectors.toList());
+
+        for (Task task : leaves) {
+            if (task.hasDependentTasks()) {
+
+            }
+        }
+
+        return null;
+    }
+
+    public static int getTaskDepth(List<Task> tasks, Task task) {
+        int depth = 1;
+        return getTaskDepth(tasks, task, depth);
+    }
+
+    private static int getTaskDepth(List<Task> tasks, Task task, int depth) {
+        List<Task> leaves = tasks.stream().filter(it -> !it.hasDependentTasks()).collect(Collectors.toList());
+        if (leaves.contains(task))
+            return depth;
+
+        List<Task> dependentTasks = Task.getDependentTasks(tasks, task);
+        for (Task t : dependentTasks) {
+            int fooDepth = getTaskDepth(tasks, t, depth);
+            return fooDepth + 1;
+        }
+
+        // TODO: throw exception, error should not happen because recursion ends at previous return
+        // maybe using iterator?
+        return -1;
     }
 
 }

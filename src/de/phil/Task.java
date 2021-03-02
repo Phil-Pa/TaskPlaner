@@ -1,6 +1,7 @@
 package de.phil;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Task {
@@ -10,6 +11,14 @@ public class Task {
     private Duration duration;
     private final boolean isParallel;
     private final List<Integer> dependentTaskIds;
+
+    public Task(int id, List<Integer> dependentTaskIds) {
+        this.id = id;
+        this.description = "";
+        this.duration = Duration.ZERO;
+        this.isParallel = false;
+        this.dependentTaskIds = dependentTaskIds;
+    }
 
     public Task(int id, String description, Duration duration, boolean isParallel, List<Integer> dependentTaskIds) {
         this.id = id;
@@ -60,5 +69,21 @@ public class Task {
                 ", duration=" + duration +
                 ", isParallel=" + isParallel +
                 '}';
+    }
+
+    public static List<Task> getDependentTasks(List<Task> tasks, Task task) {
+
+        List<Task> dependentTasks = new ArrayList<>();
+
+        // must have dependencies, otherwise it would have returned 1
+        for (int i : task.getDependentTaskIds()) {
+            for (Task t : tasks) {
+                if (t.getId() == i) {
+                    dependentTasks.add(t);
+                    break;
+                }
+            }
+        }
+        return dependentTasks;
     }
 }
