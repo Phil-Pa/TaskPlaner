@@ -3,3 +3,9 @@
 out
 .DS_Store
 */.DS_Store
+
+# Compiled class files
+*.class
+
+# Downloaded JAR files
+*.jar
