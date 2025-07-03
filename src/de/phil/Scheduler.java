@@ -21,9 +21,23 @@ public class Scheduler {
     }
 
     private boolean isValidTreeDataStructure(List<Task> tasks) {
-        List<Integer> ids = tasks.stream().map(it -> it.getDependentTaskIds() == null ? new ArrayList<Integer>() : it.getDependentTaskIds()).flatMap(Collection::stream).collect(Collectors.toList());
-
-        return (long) ids.size() == ids.stream().distinct().count();
+        // Collect all task IDs that exist in the task list
+        Set<Integer> validTaskIds = tasks.stream().map(Task::getId).collect(Collectors.toSet());
+        
+        // Check that all dependency IDs refer to valid tasks
+        for (Task task : tasks) {
+            if (task.hasDependentTasks()) {
+                for (Integer depId : task.getDependentTaskIds()) {
+                    if (!validTaskIds.contains(depId)) {
+                        return false; // Invalid dependency reference
+                    }
+                }
+            }
+        }
+        
+        // Allow multiple tasks to depend on the same task (DAG structure)
+        // The topological sort will handle cycle detection naturally
+        return true;
     }
 
     /**

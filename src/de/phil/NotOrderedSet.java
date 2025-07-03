@@ -33,7 +33,7 @@ public class NotOrderedSet<T> implements Set<T> {
 
     @Override
     public <T> T[] toArray(T[] a) {
-        return (T[]) list.toArray();
+        return list.toArray(a);
     }
 
     @Override
@@ -68,7 +68,7 @@ public class NotOrderedSet<T> implements Set<T> {
 
     @Override
     public boolean retainAll(Collection<?> c) {
-        return list.removeAll(c);
+        return list.retainAll(c);
     }
 
     @Override
